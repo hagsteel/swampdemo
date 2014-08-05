@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+
+    <ul id="data-list">
+
+    </ul>
+</head>
+<body>
+
+
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}swampdragon/js/vendor/sockjs-0.3.2.min.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}swampdragon/js/swampdragon.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}swampdragon/js/datamapper.js"></script>
+
+<script type="text/javascript">
+    var swampDragon = null;
+
+    function onChannelMessage(channel, message) {
+        if (message.action == 'created') {
+            addItem(message.data);
+        }
+
+        if (message.action == 'updated') {
+            updateItem(message.data);
+        }
+
+        console.log(message.action);
+    }
+
+    function addItem(data) {
+        $("#data-list").append(
+            $("<li>").text(data.text).addClass("data_" + data.id)
+        )
+    }
+
+    function updateItem(data) {
+        var li = $(".data_" + data.id);
+        if (li.length > 0) {
+            li.text(data.text);
+        } else {
+            addItem(data);
+        }
+
+    }
+
+    function onMessage(message) {
+        if ('client_callback_name' in message.data.context) {
+            if (message.data.context.client_callback_name == 'onSubscribe') {
+                onSubscribe(message.data);
+            }
+        }
+    }
+
+    function onSubscribe(data) {
+        console.log('subscribed to ' + data.channel_data.local_channel);
+    }
+
+    function onOpen(data) {
+        console.log('open');
+        swampDragon.subscribe('foo', {}, 'onSubscribe', 'foo-chan');
+    }
+    
+    function onClose(data) {
+        console.log('closed');
+    }
+
+    $(function() {
+
+        swampDragon = SwampDragon({
+            onchannelmessage:onChannelMessage,
+            onmessage: onMessage,
+            onopen: onOpen
+        });
+
+        swampDragon.connect('http://' + window.location.hostname + ':9999', 'data');
+    });
+</script>
+
+</body>
+</html>
